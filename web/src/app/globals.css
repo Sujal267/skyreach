@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — single source of truth.
+   Palette is fixed; the *semantic* layer flips per screen context.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  /* Surface / ground */
+  --pearl: #f5f4f1;
+  --pearl-soft: #e5e3dd;
+
+  /* Text & structure */
+  --ink: #0b0c10;
+  --ink-soft: #16181d;
+  --slate: #6b6b72;
+
+  /* Map & dark context */
+  --map-bg: var(--ink);
+  --map-ui: rgba(245, 244, 241, 0.1);
+
+  /* Accents */
+  --sky: #3d7ab5;
+  --sky-glow: rgba(61, 122, 181, 0.3);
+
+  /* Status */
+  --amber: #c98a3a;
+  --success: #3f7d5c;
+  --error: #b54a3d;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --d-fast: 150ms;
+  --d-base: 300ms;
+  --d-slow: 600ms;
+
+  /* Semantic layer — LIGHT (transaction & search screens) */
+  --surface: var(--pearl);
+  --surface-raised: #ffffff;
+  --surface-sunken: var(--pearl-soft);
+  --content: var(--ink);
+  --content-soft: var(--ink-soft);
+  --content-muted: var(--slate);
+  --line: rgba(22, 24, 29, 0.1);
+}
+
+/* Semantic layer — DARK (map-centric screens: live map, confirmation) */
+[data-theme='dark'] {
+  --surface: var(--ink);
+  --surface-raised: #14161b;
+  --surface-sunken: #0d0e13;
+  --content: var(--pearl);
+  --content-soft: var(--pearl-soft);
+  --content-muted: #8e8e97;
+  --line: rgba(245, 244, 241, 0.12);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--surface);
+    color: var(--content);
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background-color var(--d-base) var(--ease-out),
+      color var(--d-base) var(--ease-out);
+  }
+
+  /* WCAG AA: never remove the ring, only restyle it. */
+  :focus-visible {
+    outline: 2px solid var(--sky);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Numbers, codes and times align in columns — always tabular. */
+  .font-mono,
+  [class*='text-data'] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  ::selection {
+    background: var(--sky);
+    color: #fff;
+  }
+}
+
+@layer components {
+  /* Tactile feedback: every interactive surface compresses on press. */
+  .tactile {
+    transition: transform var(--d-fast) var(--ease-out),
+      background-color var(--d-fast) var(--ease-out),
+      border-color var(--d-fast) var(--ease-out),
+      box-shadow var(--d-fast) var(--ease-out),
+      color var(--d-fast) var(--ease-out);
+  }
+  .tactile:active {
+    transform: scale(0.98);
+  }
+
+  /* Navbar link: --sky underline scales in from centre. */
+  .nav-link {
+    position: relative;
+    padding-bottom: 3px;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--sky);
+    transform: scaleX(0);
+    transition: transform var(--d-fast) var(--ease-out);
+  }
+  .nav-link:hover::after,
+  .nav-link[data-active='true']::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Reduced motion: strip transitions and staggers, keep function.
+   Framer Motion variants check this too (see lib/motion.ts) —
+   this block is the CSS-side belt to that braces.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .tactile:active {
+    transform: none;
+  }
+}
+
+/* MapLibre chrome, restyled to the token system. */
+.maplibregl-ctrl-attrib {
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 10px;
+}
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: rgba(11, 12, 16, 0.6);
+}
+.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
+/* Thin, unobtrusive scrollbars inside panels. */
+.scroll-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--slate) transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: rgba(107, 107, 114, 0.4);
+  border-radius: 3px;
+}
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}

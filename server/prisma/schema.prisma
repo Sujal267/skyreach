@@ -1,0 +1,172 @@
+// SkyReach — data model.
+//
+// Faithful to spec §3. Three additions were required to make the spec's own
+// UI behaviour expressible, and are called out here rather than smuggled in:
+//   1. Airport.timezone  — flight times must render as airport-local wall clock.
+//                          Without an IANA zone, "07:00" is meaningless.
+//   2. Flight.delayMinutes — the dashboard spec calls for a DELAYED status pill.
+//   3. Booking.seat relation — spec declares `seatId` as a bare String; making it
+//                          a real FK is what stops a booking pointing at nothing.
+// Everything else — field names, types, enums, the money-in-cents rule — is as specified.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  createdAt    DateTime @default(now())
+
+  bookings      Booking[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Airport {
+  id      String @id @default(cuid())
+  iata    String @unique // "BLR"
+  icao    String @unique // "VOBL" — bridges to OpenSky callsigns
+  name    String
+  city    String
+  country String
+  lat     Float
+  lon     Float
+
+  /// IANA zone, e.g. "Europe/London". Times are stored UTC and rendered here.
+  timezone String @default("UTC")
+
+  departures Flight[] @relation("origin")
+  arrivals   Flight[] @relation("dest")
+}
+
+model Aircraft {
+  id         String @id @default(cuid())
+  model      String // "Airbus A320neo"
+  /// Layout definition — see SeatMapDefinition in src/types/seatmap.ts
+  seatMap    Json
+  totalSeats Int
+
+  flights Flight[]
+}
+
+model Flight {
+  id             String   @id @default(cuid())
+  flightNumber   String // "SR482"
+  originId       String
+  origin         Airport  @relation("origin", fields: [originId], references: [id])
+  destId         String
+  destination    Airport  @relation("dest", fields: [destId], references: [id])
+  aircraftId     String
+  aircraft       Aircraft @relation(fields: [aircraftId], references: [id])
+  departAt       DateTime
+  arriveAt       DateTime
+  basePriceCents Int
+
+  /// Minutes of delay, surfaced as the DELAYED pill on the dashboard.
+  delayMinutes Int @default(0)
+
+  /// Bridges mock schedule data to a real OpenSky aircraft when airborne.
+  trackingIcao24 String?
+
+  bookings Booking[]
+  seats    Seat[]
+
+  @@index([originId, destId, departAt])
+  @@index([departAt])
+  @@index([trackingIcao24])
+}
+
+model Seat {
+  id         String     @id @default(cuid())
+  flightId   String
+  flight     Flight     @relation(fields: [flightId], references: [id], onDelete: Cascade)
+  seatNumber String // "14C"
+  cabin      Cabin
+  status     SeatStatus @default(AVAILABLE)
+  priceCents Int
+
+  /// Soft lock during checkout. now + 10min. See spec §6.4.
+  heldUntil DateTime?
+  /// Who holds it — so a user can resume their own checkout, and so releasing
+  /// someone else's hold is impossible.
+  heldBy String?
+
+  bookings Booking[]
+
+  @@unique([flightId, seatNumber])
+  @@index([flightId, status])
+  @@index([heldUntil])
+}
+
+model Booking {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  flightId String
+  flight   Flight @relation(fields: [flightId], references: [id])
+
+  seatId String
+  seat   Seat   @relation(fields: [seatId], references: [id])
+
+  passengerName  String
+  passengerEmail String
+
+  status BookingStatus @default(PENDING)
+
+  /// Simulated payment reference. In a real build this is the Stripe
+  /// PaymentIntent id; here it records the mock transaction so the flow,
+  /// and its audit trail, keep the same shape.
+  paymentRef String?
+
+  totalCents Int
+  bookingRef String @unique // "SKY-8F3K2A"
+
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  /// PENDING bookings past this instant are swept by the cleanup job.
+  expiresAt DateTime?
+
+  @@index([userId, status])
+  @@index([expiresAt])
+}
+
+enum Cabin {
+  ECONOMY
+  PREMIUM
+  BUSINESS
+}
+
+enum SeatStatus {
+  AVAILABLE
+  HELD
+  BOOKED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
