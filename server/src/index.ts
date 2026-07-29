@@ -13,6 +13,7 @@ import { bookingsRouter } from './routes/bookings.js';
 import { liveTrafficRouter } from './routes/liveTraffic.js';
 import { startLiveTrafficPolling, stopLiveTrafficPolling } from './services/liveTraffic.js';
 import { startCleanupJob } from './jobs/cleanup.js';
+import { startFlightSupplyJob } from './jobs/flightSupply.js';
 
 const app = express();
 
@@ -66,6 +67,7 @@ async function start() {
 
   startLiveTrafficPolling();
   startCleanupJob();
+  startFlightSupplyJob();
 
   const server = app.listen(env.PORT, () => {
     console.log(`\n🛫 SkyReach API on http://localhost:${env.PORT}`);

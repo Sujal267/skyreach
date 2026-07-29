@@ -1,5 +1,5 @@
-import type { SeatMapDefinition } from '../../src/types/seatmap.js';
-import { countSeats } from '../../src/types/seatmap.js';
+import type { SeatMapDefinition } from '../types/seatmap.js';
+import { countSeats } from '../types/seatmap.js';
 
 /**
  * Invented seat layouts modelled on the real thing. Row counts, cabin splits

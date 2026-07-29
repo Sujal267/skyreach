@@ -8,6 +8,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-context';
 import Navbar from '@/components/shell/Navbar';
 import Footer from '@/components/shell/Footer';
+import ColdStartNotice from '@/components/shell/ColdStartNotice';
 
 /**
  * Type system, per the brief: Instrument Serif for display moments, Geist Sans
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Skip to content
             </a>
 
+            <ColdStartNotice />
             <Navbar />
             <main id="main" className="min-h-dvh">
               {children}
