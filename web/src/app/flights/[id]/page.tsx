@@ -227,7 +227,7 @@ export default function FlightDetailPage() {
           </aside>
 
           {/* ── Seat map ─────────────────────────────────────────────────── */}
-          <section aria-labelledby="seat-heading">
+          <section aria-labelledby="seat-heading" className="min-w-0">
             <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 id="seat-heading" className="text-h2 text-content">
